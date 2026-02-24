@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Which Groupset Are You?</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    body { margin:0; background:#f6f7fb; display:grid; place-items:center; min-height:100vh; }
+    .wrap { width:min(780px, 92vw); background:#fff; border-radius:16px; box-shadow:0 10px 30px rgba(0,0,0,.08); padding:22px; }
+    h1 { margin:0 0 6px; font-size:22px; }
+    .muted { color:#666; margin:0 0 14px; }
+    .q { margin-top:16px; padding-top:14px; border-top:1px solid #eee; }
+    .q h2 { margin:0 0 10px; font-size:18px; }
+    .answers { display:grid; gap:10px; }
+    button.answer {
+      width:100%; text-align:left; border:1px solid #e7e7ef; background:#fafafe;
+      padding:12px 14px; border-radius:12px; cursor:pointer; font-size:16px;
+    }
+    button.answer:hover { background:#f1f5ff; border-color:#c7d2fe; }
+    .footer { display:flex; justify-content:space-between; gap:10px; margin-top:16px; }
+    .secondary { background:transparent; border:1px solid #e7e7ef; padding:10px 12px; border-radius:12px; cursor:pointer; }
+    .primary { background:#4f46e5; color:white; border:none; padding:10px 12px; border-radius:12px; cursor:pointer; }
+    .result { margin-top:18px; border-top:1px solid #eee; padding-top:16px; }
+    .resultCard { background:#0b1220; color:#fff; border-radius:14px; padding:16px; }
+    .shareRow { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+    input { flex:1; min-width:220px; padding:10px 12px; border-radius:10px; border:1px solid #ddd; }
+    .progress { font-size:13px; color:#666; }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="app"></div>
+
+  <script>
+    // Outcomes
+    const OUTCOMES = {
+      SRAM: {
+        title: "SRAM",
+        desc: "Bold, direct, innovative, slightly chaotic (in a good way). You love clean setups and big energy."
+      },
+      Shimano: {
+        title: "Shimano",
+        desc: "Smooth, reliable, precise. You trust proven systems and quietly deliver every time."
+      },
+      Tektro: {
+        title: "Tektro",
+        desc: "Practical, chill, low-drama. You care about the experience more than the hype."
+      },
+      Microshift: {
+        title: "Microshift",
+        desc: "Underrated, independent, surprisingly impressive. You do not follow trends—you find your own path."
+      }
+    };
+
+    // Quiz: each answer maps to a result bucket (A/B/C/D)
+    const QUESTIONS = [
+      {
+        text: "Your ideal Saturday morning looks like…",
+        answers: [
+          { label: "Solo smashfest. Strava PB. Coffee after. No apologies.", bucket: "SRAM" },
+          { label: "Structured ride, controlled pace, coffee stop planned.", bucket: "Shimano" },
+          { label: "Casual cruise. Vibes first. Maybe forget the Garmin.", bucket: "Tektro" },
+          { label: "Random gravel detour. Slight chaos. Great story.", bucket: "Microshift" },
+        ]
+      },
+      {
+        text: "Your approach to training is…",
+        answers: [
+          { label: "Send it. Adapt later.", bucket: "SRAM" },
+          { label: "Spreadsheet. Zones. Data. Recovery dialled.", bucket: "Shimano" },
+          { label: "I will ride when I feel like it.", bucket: "Tektro" },
+          { label: "Try weird intervals you saw on YouTube.", bucket: "Microshift" },
+        ]
+      },
+      {
+        text: "In a group ride, you are the one who…",
+        answers: [
+          { label: "Attacks the hill for no reason.", bucket: "SRAM" },
+          { label: "Sets tempo at the front smoothly.", bucket: "Shimano" },
+          { label: "Sits mid-pack enjoying the chat.", bucket: "Tektro" },
+          { label: "Goes the wrong way but finds a better café.", bucket: "Microshift" },
+        ]
+      },
+      {
+        text: "Your ideal bike setup is…",
+        answers: [
+          { label: "Lightweight, aggressive, minimal, bold.", bucket: "SRAM" },
+          { label: "Clean, precise, reliable, quiet.", bucket: "Shimano" },
+          { label: "Affordable, simple, works fine.", bucket: "Tektro" },
+          { label: "Slightly different. Underrated.", bucket: "Microshift" },
+        ]
+      },
+      {
+        text: "How do you make decisions?",
+        answers: [
+          { label: "Gut instinct. Fast. Confident.", bucket: "SRAM" },
+          { label: "Research everything. Compare specs. Sleep on it.", bucket: "Shimano" },
+          { label: "Whatever is easiest.", bucket: "Tektro" },
+          { label: "What if we tried something different?", bucket: "Microshift" },
+        ]
+      },
+      {
+        text: "Coffee order?",
+        answers: [
+          { label: "Long black. Strong.", bucket: "SRAM" },
+          { label: "Flat white. Balanced.", bucket: "Shimano" },
+          { label: "Cappuccino. Safe choice.", bucket: "Tektro" },
+          { label: "Oat latte with something experimental.", bucket: "Microshift" },
+        ]
+      },
+      {
+        text: "When something breaks mid-ride…",
+        answers: [
+          { label: "It is fine. Continues riding aggressively.", bucket: "SRAM" },
+          { label: "Diagnose calmly. Fix precisely.", bucket: "Shimano" },
+          { label: "Calls someone.", bucket: "Tektro" },
+          { label: "MacGyvers it with zip ties and vibes.", bucket: "Microshift" },
+        ]
+      },
+      {
+        text: "When people describe you, they most often say you are…",
+        answers: [
+          { label: "Intense but inspiring.", bucket: "SRAM" },
+          { label: "Steady and reliable.", bucket: "Shimano" },
+          { label: "Easygoing and grounded.", bucket: "Tektro" },
+          { label: "Different in a way that grows on you.", bucket: "Microshift" },
+        ]
+      },
+      {
+        text: "Choose a life motto:",
+        answers: [
+          { label: "If it works, it works.", bucket: "SRAM" },
+          { label: "Trust the process.", bucket: "Shimano" },
+          { label: "Good enough is good enough.", bucket: "Tektro" },
+          { label: "What is the worst that could happen?", bucket: "Microshift" },
+        ]
+      },
+      {
+        text: "When learning something new, you prefer to…",
+        answers: [
+          { label: "Jump in and figure it out as you go.", bucket: "SRAM" },
+          { label: "Watch tutorials and understand it properly first.", bucket: "Shimano" },
+          { label: "Ask someone to show you once and that is enough.", bucket: "Tektro" },
+          { label: "Experiment with it in your own way.", bucket: "Microshift" },
+        ]
+      },
+      {
+        text: "At a team event, you are the one who…",
+        answers: [
+          { label: "Brings energy and lifts the room.", bucket: "SRAM" },
+          { label: "Organises it so it actually runs smoothly.", bucket: "Shimano" },
+          { label: "Just shows up and enjoys it.", bucket: "Tektro" },
+          { label: "Suggests something unconventional but fun.", bucket: "Microshift" },
+        ]
+      },
+    ];
+
+    // State
+    let idx = 0;
+    const scores = { SRAM: 0, Shimano: 0, Tektro: 0, Microshift: 0 };
+
+    function pickWinner() {
+      const entries = Object.entries(scores);
+      entries.sort((a,b) => b[1] - a[1]);
+      // tie-break: first in sorted order (stable by definition order above)
+      return entries[0][0];
+    }
+
+    function render() {
+      const app = document.getElementById("app");
+
+      if (idx >= QUESTIONS.length) {
+        const winner = pickWinner();
+        const shareUrl = new URL(window.location.href);
+        shareUrl.searchParams.set("result", winner);
+
+        app.innerHTML = `
+          <h1>Which Groupset Are You?</h1>
+          <p class="muted">Result generated instantly.</p>
+
+          <div class="result">
+            <div class="resultCard">
+              <div style="font-size:13px; opacity:.85;">Your result</div>
+              <div style="font-size:22px; font-weight:700; margin-top:6px;">${OUTCOMES[winner].title}</div>
+              <div style="margin-top:8px; line-height:1.4;">${OUTCOMES[winner].desc}</div>
+            </div>
+
+            <div class="shareRow">
+              <input id="share" value="${shareUrl.toString()}" readonly />
+              <button class="primary" id="copyBtn">Copy link</button>
+              <button class="secondary" id="restartBtn">Restart</button>
+            </div>
+            <div class="muted">Score: SRAM ${scores.SRAM} · Shimano ${scores.Shimano} · Tektro ${scores.Tektro} · Microshift ${scores.Microshift}</div>
+          </div>
+        `;
+
+        document.getElementById("copyBtn").onclick = async () => {
+          const val = document.getElementById("share").value;
+          try { await navigator.clipboard.writeText(val); alert("Link copied"); }
+          catch { alert("Could not copy automatically—select and copy the link."); }
+        };
+        document.getElementById("restartBtn").onclick = () => {
+          idx = 0;
+          scores.SRAM = scores.Shimano = scores.Tektro = scores.Microshift = 0;
+          window.history.replaceState({}, "", window.location.pathname);
+          render();
+        };
+        return;
+      }
+
+      const q = QUESTIONS[idx];
+      app.innerHTML = `
+        <div class="top">
+          <h1>Which Groupset Are You?</h1>
+          <div class="progress">Question ${idx + 1} of ${QUESTIONS.length}</div>
+        </div>
+        <p class="muted">Pick the answer that fits best. You get your result immediately.</p>
+
+        <div class="q">
+          <h2>${q.text}</h2>
+          <div class="answers">
+            ${q.answers.map((a, i) => `<button class="answer" data-i="${i}">${a.label}</button>`).join("")}
+          </div>
+        </div>
+
+        <div class="footer">
+          <button class="secondary" id="backBtn" ${idx === 0 ? "disabled" : ""}>Back</button>
+          <div class="muted">Your answers are not sent anywhere (unless you add analytics).</div>
+        </div>
+      `;
+
+      app.querySelectorAll("button.answer").forEach(btn => {
+        btn.onclick = () => {
+          const i = Number(btn.dataset.i);
+          const bucket = q.answers[i].bucket;
+          scores[bucket] += 1;
+          idx += 1;
+          render();
+        };
+      });
+
+      document.getElementById("backBtn").onclick = () => {
+        // Simple back: reload page to avoid complex undo logic
+        // If you want true back/undo, we can store a history stack.
+        window.location.reload();
+      };
+    }
+
+    // If someone opens a shared link with ?result=SRAM, show that immediately
+    const params = new URLSearchParams(window.location.search);
+    const preset = params.get("result");
+    if (preset && OUTCOMES[preset]) {
+      idx = QUESTIONS.length;
+      scores[preset] = 999; // force winner
+    }
+
+    render();
+  </script>
+</body>
+</html>
